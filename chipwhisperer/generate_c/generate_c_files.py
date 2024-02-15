@@ -62,7 +62,7 @@ def generate_c_files(name=None):
     if name:
         # Check if name exists:
         if name in sbox_dict.keys():
-            with open(f"{current_dir}/../chipwhisperer-minimal/firmware/crypto/tiny-AES128-C/aes.c", "w") as f:
+            with open(f"{current_dir}/../firmware/crypto/tiny-AES128-C/aes.c", "w") as f:
                 f.write(generate_c_file(sbox_dict[name], prelude, postlude, complement, current_dir))
 
         else:
