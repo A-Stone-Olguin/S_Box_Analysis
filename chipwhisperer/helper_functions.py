@@ -33,7 +33,7 @@ def gather_n_traces(N=100, hexname="flick_em.hex"):
     scope.dis()
     return trace_array
 
-def setup(N=100, hexname="flick_em.hex", PLATFORM="CWNANO"):
+def setup(PLATFORM="CWNANO"):
     try:
         if not scope.connectStatus:
             scope.con()
@@ -98,8 +98,6 @@ def make_firmware(name_sbox, platform = 'CWNANO', c_target = 'TINYAES128C', scop
     generate_c_files(name_sbox)
 
     subprocess.Popen(["make", f"PLATFORM={platform}", f"CRYPTO_TARGET={c_target}", f"SBOX2=0"],  cwd=f"{current_dir}/firmware/simpleserial-aes")
-
-    # subprocess.Popen(f"make -C {current_dir}/firmware/simpleserial-aes/make PLATFORM={platform} CRYPTO_TARGET={c_target} SBOX2=0")
     return
 
 
