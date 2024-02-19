@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import numpy as np
+from tqdm import trange
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_dir)
@@ -51,10 +52,6 @@ def gather_n_traces(setup_result, N=100, hexname="flick_em.hex"):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     scope, prog, target = setup_result
 
-    # scope.default_setup()
-    print("Programming target")
-    cw.program_target(scope, prog, f"{current_dir}/firmware/simpleserial-aes/{hexname}")
-
     ktp = cw.ktp.Basic()
     trace_array = []
     textin_array = []
@@ -62,7 +59,7 @@ def gather_n_traces(setup_result, N=100, hexname="flick_em.hex"):
     key, text = ktp.next()
     target.set_key(key)
 
-    for _ in range(N):
+    for _ in trange(N, desc=f"Gathering {N} traces", leave=False):
         scope.arm()
 
         target.simpleserial_write('p', text)
@@ -79,9 +76,7 @@ def gather_n_traces(setup_result, N=100, hexname="flick_em.hex"):
 
         key, text = ktp.next()
 
-
-    scope.dis()
-    return trace_array
+    return textin_array, trace_array
 
 def reset_target(scope):
     scope.io.nrst = 'low'
@@ -126,18 +121,4 @@ def make_firmware(name_sbox, platform = 'CWNANO', c_target = 'TINYAES128C', scop
     generate_c_files(name_sbox)
     subprocess.run(["make", f"PLATFORM={platform}", f"CRYPTO_TARGET={c_target}", f"SBOX2=0"],  cwd=f"{current_dir}/firmware/simpleserial-aes")
     return
-
-
-
-def aes_internal(sbox, input_data, key, sboxcomp=None):
-    if sboxcomp:
-        return sbox[sboxcomp[input_data ^ key]]
-    else:
-        return sbox[input_data ^ key]
-
-
-        
-    
-    
-
 
