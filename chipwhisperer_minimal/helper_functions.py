@@ -4,36 +4,15 @@ from math import *
 import pickle
 import subprocess
 import sys
-
-
+import time
+import numpy as np
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(current_dir)
 from generate_c.generate_c_files import generate_c_files
 
-def gather_n_traces(N=100, hexname="flick_em.hex"):
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-
-    scope.default_setup()
-
-    cw.program_target(scope, prog, f"{current_dir}/firmware/simpleserial-aes/{hexname}")
-
-    trace_array = []
-    for _ in range(N):
-        scope.arm()
-
-        ret = scope.capture()
-        if ret:
-            print("Target timed out!")
-            continue
-
-        trace_array.append(scope.get_last_trace())
-
-
-    scope.dis()
-    return trace_array
-
-def setup(PLATFORM="CWNANO"):
+# Sets up a cw device
+def setup_scope_prog(PLATFORM="CWNANO"):
     try:
         if not scope.connectStatus:
             scope.con()
@@ -43,7 +22,7 @@ def setup(PLATFORM="CWNANO"):
     target_type = cw.targets.SimpleSerial
 
     try:
-        cw.target(scope, target_type)
+        target = cw.target(scope, target_type)
     except:
         print(
             "INFO: Caught exception on reconnecting to target - attempting to reconnect to scope first."
@@ -52,16 +31,65 @@ def setup(PLATFORM="CWNANO"):
             "INFO: This is a work-around when USB has died without Python knowing. Ignore errors above this line."
         )
         scope = cw.scope()
-        cw.target(scope, target_type)
+        target = cw.target(scope, target_type)
+
+    print("INFO: Found ChipWhisperer😍")
+
 
     if "STM" in PLATFORM or PLATFORM == "CWLITEARM" or PLATFORM == "CWNANO":
         prog = cw.programmers.STM32FProgrammer
     else:
         prog = None
-
     
-    print("INFO: Found ChipWhisperer😍")
-    return
+    time.sleep(0.05)
+    scope.default_setup()
+    scope.adc.samples = 2500
+    
+    return (scope, prog, target)
+
+def gather_n_traces(setup_result, N=100, hexname="flick_em.hex"):
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    scope, prog, target = setup_result
+
+    # scope.default_setup()
+    print("Programming target")
+    cw.program_target(scope, prog, f"{current_dir}/firmware/simpleserial-aes/{hexname}")
+
+    ktp = cw.ktp.Basic()
+    trace_array = []
+    textin_array = []
+
+    key, text = ktp.next()
+    target.set_key(key)
+
+    for _ in range(N):
+        scope.arm()
+
+        target.simpleserial_write('p', text)
+
+        ret = scope.capture()
+        if ret:
+            print("Target timed out!")
+            continue
+
+        response = target.simpleserial_read('r', 16)
+        
+        trace_array.append(scope.get_last_trace())
+        textin_array.append(text)
+
+        key, text = ktp.next()
+
+
+    scope.dis()
+    return trace_array
+
+def reset_target(scope):
+    scope.io.nrst = 'low'
+    time.sleep(0.05)
+    scope.io.nrst = 'high_z'
+    time.sleep(0.05)
+
+
 
 # Generates the "Complement" of an s-box
 # A complement s-box c[i,j] is defined in comparison to the original s-box s[i,j] as:
@@ -96,8 +124,7 @@ def make_firmware(name_sbox, platform = 'CWNANO', c_target = 'TINYAES128C', scop
         sbox_info = pickle.load(f).T.to_dict()
     # Generate c file
     generate_c_files(name_sbox)
-
-    subprocess.Popen(["make", f"PLATFORM={platform}", f"CRYPTO_TARGET={c_target}", f"SBOX2=0"],  cwd=f"{current_dir}/firmware/simpleserial-aes")
+    subprocess.run(["make", f"PLATFORM={platform}", f"CRYPTO_TARGET={c_target}", f"SBOX2=0"],  cwd=f"{current_dir}/firmware/simpleserial-aes")
     return
 
 

@@ -1,2 +1,15 @@
 __pycache__
 *.pkl
+**/*.bin
+**/*.eep
+**/*.hex
+**/*.elf
+**/*.lss
+**/*.map
+**/*.sym
+*.o
+*.d
+*.lst
+*.npy
+*.o.s 
+*.cwp

@@ -56,4 +56,4 @@ def gather_pt(N=100, hexname="flick_em.hex"):
 
     scope.dis()
     return trace_array
-gather_pt()
+gather_pt(100, "firmware/simpleserial-aes/simpleserial-aes-CWNANO.hex")
