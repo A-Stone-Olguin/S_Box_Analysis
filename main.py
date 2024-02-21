@@ -13,11 +13,14 @@ def main():
             sboxes_df = pickle.load(f)
 
     sboxes_dict = sboxes_df.T.to_dict()
+    device = "CWNANO"
+    attack_method = "CPA"
+    filename=f"./results/n_traces_{attack_method.lower()}_{device.lower()}.txt"
 
-    with open("./results/n_traces_cpa.txt", "w") as f:
+    with open(filename, "w") as f:
         for sbox_name in sboxes_dict.keys():
             sbox = sboxes_dict[sbox_name]["box"]
-            N_threshold = num_traces(sbox_name, sbox, "CWNANO", "CPA")
+            N_threshold = num_traces(sbox_name, sbox, device, attack_method)
             print(sbox_name, N_threshold, file=f)
     print("All done!")
 

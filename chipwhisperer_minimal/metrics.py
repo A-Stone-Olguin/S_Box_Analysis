@@ -1,6 +1,7 @@
 from tqdm import trange
 from chipwhisperer_minimal.helper_functions import *
 from chipwhisperer_minimal.sca_attacks import *
+import time
 
 METRIC_HIGH = 250
 TOTAL_RUNS = 10
@@ -24,6 +25,9 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
     if not setup_result:
         # Make the firmware for the sbox and setup the device
         make_firmware(sbox_name, platform, c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False)
+
+        #Pause for a second to generate the firmware
+        time.sleep(1)
         setup_result = setup_scope_prog(platform)
 
         print("Programming target")

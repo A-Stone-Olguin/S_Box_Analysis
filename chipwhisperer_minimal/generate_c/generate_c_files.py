@@ -33,7 +33,7 @@ def generate_c_file(sbox_info, prelude, postlude, complement, current_dir):
     inv = sbox_info["inverse"]
 
     if len(inv) == 0:
-        with open(f"{current_dir}/aes_postlude.c.part", "r") as f:
+        with open(f"{current_dir}/aes_inverse.c.part", "r") as f:
             c_inv = "".join(f.readlines())
     else:
         c_inv = c_array(inv, True)
