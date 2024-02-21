@@ -3,11 +3,22 @@ from chipwhisperer_minimal.helper_functions import *
 from chipwhisperer_minimal.sca_attacks import *
 import time
 
-METRIC_HIGH = 250
 TOTAL_RUNS = 10
     
 
-def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0, N_hi = 2*METRIC_HIGH, setup_result = None):
+def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0, N_hi = None, setup_result = None):
+    # If no metric high given, define it
+    METRIC_HIGH = None
+    if not N_hi:
+        if attack_method.upper() == "DPA":
+            METRIC_HIGH = 1000
+        elif attack_method.upper() == "CPA":
+            METRIC_HIGH = 250
+        else :
+            print("Invalid attack method given! Please use either `CPA` or `DPA`")
+            return -1
+        N_hi = 2*METRIC_HIGH
+
     # If we found our threshold, return our number of traces
     # Since we halve our result each time, this will terminate in `log_2 METRIC_HIGH` iterations
     if abs(N_hi - N_lo) <= 1:
@@ -45,7 +56,8 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
             key_guess = cpa_run(sbox, textin_array, trace_array)
         else:
             print("Invalid attack_method provided. Please use either 'CPA' or 'DPA'.")
-            return 
+            setup_result[0].dis()
+            return -1
     
         if known_key == key_guess:
             num_correct_breaks+=1
@@ -53,9 +65,10 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
     # If we broke in 90% of the tests, we consider this a good break, check for a lower break
     if num_correct_breaks >= .9*TOTAL_RUNS:
         return num_traces(sbox_name, sbox, platform, attack_method, N_lo=N_lo, N_hi=bisection, setup_result=setup_result)
-    # Our original upper bound wasn't high enough
-    elif bisection == METRIC_HIGH/2:
-        print(F"No break with upper bound of {METRIC_HIGH}/2!")
+    # Our original upper bound wasn't high enough, it will be defined
+    elif METRIC_HIGH:
+        print(F"No break with upper bound of {METRIC_HIGH}*2!")
+        setup_result[0].dis()
         return -1
     # We didn't get a break, see if there is one with more traces
     else:

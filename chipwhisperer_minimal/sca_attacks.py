@@ -26,14 +26,14 @@ def calculate_diffs(sbox, textin_array, trace_array, guess, byteindex=0, bitnum=
 
     one_avg = np.asarray(one_list).mean(axis=0)
     zero_avg = np.asarray(zero_list).mean(axis=0)
-    return one_avg - zero_avg
+    return abs(one_avg - zero_avg)
 
 
 def dpa_run(sbox, textin_array, trace_array):
     key_guess = []
-    known_key = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c]
+    # known_key = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c]
 
-    full_diffs_list = []
+    # full_diffs_list = []
     for subkey in trange(0, 16, desc="Attacking Subkey", leave=False):
         max_diffs = [0]*256
         full_diffs = [0]*256
@@ -43,7 +43,7 @@ def dpa_run(sbox, textin_array, trace_array):
             full_diffs[guess] = full_diff_trace
             
         #Get argument sort, as each index is the actual key guess.
-        full_diffs_list.append(full_diffs[:])
+        # full_diffs_list.append(full_diffs[:])
         sorted_args = np.argsort(max_diffs)[::-1]
         
         #Keep most likely
