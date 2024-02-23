@@ -4,6 +4,7 @@ from chipwhisperer_minimal.sca_attacks import *
 import time
 
 TOTAL_RUNS = 10
+TTEST_THRESHOLD = 4.5
     
 
 def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0, N_hi = None, setup_result = None):
@@ -43,19 +44,18 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
 
         print("Programming target")
         cw.program_target(setup_result[0], setup_result[1], f"{current_dir}/firmware/simpleserial-aes/{hexname}")
-        # scope.dis()
 
     bisection = (N_lo + N_hi)//2
 
     for _ in trange(0,TOTAL_RUNS, desc=f"Num traces for {sbox_name} with N of {bisection} ", leave=False):
-        textin_array, trace_array = gather_n_traces(setup_result, N=bisection, hexname=hexname)
+        textin_array, trace_array = gather_n_traces(setup_result, N=bisection)
         
         if attack_method.upper() == "DPA":
             key_guess = dpa_run(sbox, textin_array, trace_array)
         elif attack_method.upper() == "CPA":
             key_guess = cpa_run(sbox, textin_array, trace_array)
         else:
-            print("Invalid attack_method provided. Please use either 'CPA' or 'DPA'.")
+            print("Invalid attack_method provided. Please use either 'CPA', 'DPA', or `TVLA`.")
             setup_result[0].dis()
             return -1
     
@@ -74,6 +74,30 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
     else:
         return num_traces(sbox_name, sbox, platform, attack_method, N_lo=bisection, N_hi=N_hi, setup_result=setup_result)
     
+
+
 # Function for metric of TVLA
-def tvla():
-    return
+def tvla(sbox_name, platform = "CWNANO"):
+    METRIC_HIGH = 125      
+    # Make the firmware for the sbox and setup the device
+    make_firmware(sbox_name, platform, c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False)
+
+    #Pause for a second to generate the firmware
+    time.sleep(1)
+    setup_result = setup_scope_prog(platform)
+
+    print("Programming target")
+    hexname = f"simpleserial-aes-{platform}.hex"
+    cw.program_target(setup_result[0], setup_result[1], f"{current_dir}/firmware/simpleserial-aes/{hexname}")
+
+    percentage_leaks = [0] * TOTAL_RUNS
+
+    for _ in trange(0, TOTAL_RUNS, desc=f"TVLA on {sbox_name}", leave=False):
+        fixed_t, random_t = tvla_gather_n_traces(setup_result, N=METRIC_HIGH)
+        percentage_leak = tvla_run(fixed_t, random_t, TTEST_THRESHOLD)
+
+        percentage_leaks.append(percentage_leak)
+
+    setup_result[0].dis()
+    # Return the average percent leaks
+    return np.mean(percentage_leaks)

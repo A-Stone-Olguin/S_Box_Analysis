@@ -48,8 +48,7 @@ def setup_scope_prog(PLATFORM="CWNANO"):
     
     return (scope, prog, target)
 
-def gather_n_traces(setup_result, N=100, hexname="flick_em.hex"):
-    current_dir = os.path.dirname(os.path.realpath(__file__))
+def gather_n_traces(setup_result, N=100):
     scope, prog, target = setup_result
 
     ktp = cw.ktp.Basic()
@@ -77,6 +76,30 @@ def gather_n_traces(setup_result, N=100, hexname="flick_em.hex"):
         key, text = ktp.next()
 
     return textin_array, trace_array
+
+def tvla_gather_n_traces(setup_result, N=100):
+    scope, prog, target = setup_result
+
+    ktp = cw.ktp.TVLATTest()
+    ktp.init(N)
+    group1 = []
+    group2 = []
+
+    fixed_text = bytearray([0xDA,0x39,0xA3,0xEE,0x5E,0x6B,0x4B,0x0D,0x32,0x55,0xBF,0xEF,0x95,0x60,0x18,0x90])
+    key, text = ktp.next()
+
+    for _ in trange(2 * N, desc=f"Gathering {N*2} traces", leave=False):
+        key, text = ktp.next()
+        trace = cw.capture_trace(scope, target, text, key)
+        if trace is None:
+            print("No trace found!")
+            continue 
+        if trace.textin == fixed_text:
+            group1.append(trace.wave)
+        else:
+            group2.append(trace.wave)
+        key, text = ktp.next()
+    return (group1, group2)
 
 def reset_target(scope):
     scope.io.nrst = 'low'

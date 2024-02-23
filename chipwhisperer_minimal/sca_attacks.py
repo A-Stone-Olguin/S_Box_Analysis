@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import trange
+from scipy.stats import ttest_ind
 
 HW = [bin(n).count("1") for n in range(0,256)]
 
@@ -78,6 +79,23 @@ def cpa_run(sbox, textin_array, trace_array):
         key_guess[bnum] = np.argmax(maxcpa)
     return key_guess
 
-def tvla_run():
-    #TODO Finish this
-    return
+
+
+# Returns the percentage of traces that are broken (detected leakage)
+def tvla_run(fixed_traces, random_traces, threshold):
+
+    trace_len = len(fixed_traces[0])
+    group1_len = len(fixed_traces) // 2
+    group2_len = len(random_traces) // 2
+    t = np.zeros([2, trace_len], dtype='float64')
+    t[0] = ttest_ind(fixed_traces[:group1_len], random_traces[:group2_len], axis=0, equal_var=False)[0]
+    t[1] = ttest_ind(fixed_traces[group1_len:], random_traces[group2_len:], axis=0, equal_var=False)[0]
+
+    num_leaks = 0
+    for i in range(len(t[0])):
+        if abs(t[0][i]) >= threshold and abs(t[1][i]) >= threshold:
+            num_leaks+=1
+
+    percentage_breaks = num_leaks/len(t[0])
+
+    return percentage_breaks
