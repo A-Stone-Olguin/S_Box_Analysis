@@ -135,13 +135,13 @@ def generate_n_complement(sbox, n):
 
 # def program_device()
 
-def make_firmware(name_sbox, platform = 'CWNANO', c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False):
+def make_firmware(name_sbox, platform = 'CWNANO', c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False, aes_mode=None):
     
     pickle_file = f"{current_dir}/generate_c/sboxes_info.pkl"
     with open(pickle_file, "rb") as f:
         sbox_info = pickle.load(f).T.to_dict()
     # Generate c file
     generate_c_files(name_sbox)
-    subprocess.run(["make", f"PLATFORM={platform}", f"CRYPTO_TARGET={c_target}", f"SBOX2=0"],  cwd=f"{current_dir}/firmware/simpleserial-aes")
+    subprocess.run(["make", f"PLATFORM={platform}", f"CRYPTO_TARGET={c_target}", f"SBOX2=0", f"AES_MODE={aes_mode}"],  cwd=f"{current_dir}/firmware/simpleserial-aes")
     return
 

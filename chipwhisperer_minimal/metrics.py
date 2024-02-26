@@ -7,7 +7,7 @@ TOTAL_RUNS = 10
 TTEST_THRESHOLD = 4.5
     
 
-def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0, N_hi = None, setup_result = None):
+def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", aes_mode=None, N_lo=0, N_hi = None, setup_result = None):
     # If no metric high given, define it
     METRIC_HIGH = None
     if not N_hi:
@@ -36,7 +36,7 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
 
     if not setup_result:
         # Make the firmware for the sbox and setup the device
-        make_firmware(sbox_name, platform, c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False)
+        make_firmware(sbox_name, platform, c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False, aes_mode=aes_mode)
 
         #Pause for a second to generate the firmware
         time.sleep(1)
@@ -77,10 +77,10 @@ def num_traces(sbox_name, sbox, platform = "CWNANO", attack_method="DPA", N_lo=0
 
 
 # Function for metric of TVLA
-def tvla(sbox_name, platform = "CWNANO"):
+def tvla(sbox_name, platform = "CWNANO", aes_mode=None):
     METRIC_HIGH = 125      
     # Make the firmware for the sbox and setup the device
-    make_firmware(sbox_name, platform, c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False)
+    make_firmware(sbox_name, platform, c_target = 'TINYAES128C', scope_t = 'OPENADC', sbox2 = False, aes_mode=aes_mode)
 
     #Pause for a second to generate the firmware
     time.sleep(1)

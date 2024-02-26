@@ -377,6 +377,7 @@ end:
 	@echo   +      SBOX2          = "$(SBOX2)"
 	@echo   +      CRYPTO_TARGET  = "$(CRYPTO_TARGET)"
 	@echo   +      CRYPTO_OPTIONS = "$(CRYPTO_OPTIONS)"
+	@echo   +      AES_MODE       = "$(AES_MODE)"
 	@echo   +--------------------------------------------------------
 
 fastnote:

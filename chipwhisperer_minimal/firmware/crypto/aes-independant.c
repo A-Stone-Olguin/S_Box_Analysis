@@ -34,12 +34,23 @@ void aes_indep_init(void)
 
 void aes_indep_key(uint8_t * key)
 {
+    #if defined(cbc) || defined(ctr)
+    uint8_t iv[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+    AES_init_ctx_iv(&ctx, key, iv);
+    #else
     AES_init_ctx(&ctx, key);
+    #endif
 }
 
 void aes_indep_enc(uint8_t * pt)
 {
+    #if defined(cbc)
+    AES_CBC_encrypt_buffer(&ctx, pt, 64);
+    #elif defined(ctr)
+    AES_CTR_xcrypt_buffer(&ctx, pt, 64);
+    #else
 	AES_ECB_encrypt(&ctx, pt);
+    #endif
 }
 
 void aes_indep_enc_pretrigger(uint8_t * pt)

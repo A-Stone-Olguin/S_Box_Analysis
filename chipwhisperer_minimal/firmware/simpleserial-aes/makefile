@@ -45,6 +45,16 @@ ifdef SBOX2
 CFLAGS += -DSBOX2=$(SBOX2)
 endif
 
+ifdef AES_MODE
+ifeq ($(AES_MODE), ECB)
+CFLAGS+= -Decb
+else ifeq ($(AES_MODE), CBC)
+CFLAGS+= -Dcbc
+else ifeq ($(AES_MODE), CTR)
+CFLAGS+= -Dctr
+endif
+endif
+
 
 ifeq ($(CRYPTO_TARGET),)
   ${info No CRYPTO_TARGET passed - defaulting to TINYAES128C}
