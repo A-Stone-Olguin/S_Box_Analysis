@@ -7,6 +7,7 @@ install.packages("rgl")
 install.packages("effects")
 install.packages("estimability")
 
+
 # Libraries
 library(ggplot2)
 library(patchwork)
@@ -24,7 +25,7 @@ hgd()
 
 # Gathering S-box results and attaching for ease of use
 results <- read.csv("./results/sboxes_results.csv")
-dependent_vars <- colnames(results)[(ncol(results)-6):ncol(results)]
+dependent_vars <- colnames(results)[11:ncol(results)]
 attach(results)
 
 # Note that linear_probability and nonlinearity are directly related, so linear prob is removed
@@ -65,84 +66,6 @@ regression_step <- function(linear_model, dependent_var, mode = "l") {
     return(regression_step(new_lm, dependent_var, mode))
 }
 
-fit1 <- lm(X30_cwlitearm_tvla_ECB_1000 ~
-            nonlinearity +
-            differential_probability +
-            boomerang_uniformity +
-            diff_branch +
-            linear_branch +
-            bic +
-            sac +
-            I(nonlinearity^2) +
-            I(differential_probability^2) +
-            I(boomerang_uniformity^2) +
-            I(diff_branch^2) +
-            I(linear_branch^2) +
-            I(bic^2) +
-            I(sac^2) + 
-            I(nonlinearity^3) +
-            I(differential_probability^3) +
-            I(boomerang_uniformity^3) +
-            I(diff_branch^3) +
-            I(linear_branch^3) +
-            I(bic^3) +
-            I(sac^3))
-
-fitnano <- lm(X30_cwlitearm_tvla_ECB_1000 ~
-            (nonlinearity +
-            differential_probability +
-            boomerang_uniformity +
-            diff_branch +
-            linear_branch +
-            bic +
-            sac)^2 +
-            I(nonlinearity^2) +
-            I(differential_probability^2) +
-            I(boomerang_uniformity^2) +
-            I(diff_branch^2) +
-            I(bic^2) +
-            I(sac^2))
-
-res <- regression_step(fit1, "X30_cwlitearm_tvla_ECB_1000 ~")
-summary(res)
-
-ptvla <- ggplot(data=results, aes(x = bic, y = X30_cwnano_tvla_ECB_1000)) + 
-        geom_point() + 
-        geom_smooth(method =  "lm", se = FALSE)
-ptvla
-ptvla <- ggplot(data=results, aes(x = differential_probability, y = X30_cwnano_tvla_ECB_1000)) + 
-        geom_point() + 
-        geom_smooth(method =  "lm", se = FALSE)
-ptvla
-
-crPlots(res)
-# Create partial regression plots
-avPlots(res)
-
-results$factor <- as.factor(X10_cwnano_dpa_ECB)
-fit_sq_glm <- glm(factor ~
-            nonlinearity +
-            differential_probability +
-            boomerang_uniformity +
-            diff_branch +
-            linear_branch +
-            bic +
-            sac +
-            I(nonlinearity^2) +
-            I(differential_probability^2) +
-            I(boomerang_uniformity^2) +
-            I(diff_branch^2) +
-            I(linear_branch^2) +
-            I(bic^2) +
-            I(sac^2), 
-            data = results,
-            family = "binomial")
-summary(fit_sq_glm)
-summary(regression_step(fit_sq_glm, "factor ~", mode = "g"))
-
-
-
-
 plot_deps <- function(df, dependent_vars) {
     for (dependent_var in dependent_vars) {
         p <- ggplot(df, aes(x=.data[[dependent_var]])) +
@@ -174,8 +97,8 @@ plot2 <- ggplot(data = results, aes(x = X10_cwlitearm_dpa_ECB, color = "CW-Lite"
         theme(plot.title = element_text(hjust = 0.5),
             # panel.background = element_rect(fill = "transparent", color = NA),
             axis.title.x = element_text(margin = margin(t = 20))) + 
-            scale_color_manual(values = c("CW-Nano" = "blue", "CW-Lite" = "red"),
-                                    name = "ChipWhisperer Device") + 
+        scale_color_manual(values = c("CW-Nano" = "blue", "CW-Lite" = "red"),
+                                name = "ChipWhisperer Device") + 
         guides(color = guide_legend(override.aes = list(fill = c("red"))))
 
 # Put in SubPlots
@@ -434,20 +357,20 @@ ggplot(plot_data, aes(x = fitted_values, y = actual_values)) +
     ggtitle("Actual versus Fitted Values")
 
 
-crPlot3d(model = p_fit, terms =  ~ ., var1 = "linear_probability" ,
- var2 = "sac", data = results,
-         main = "3D Scatterplot with Regression Plane",
-         smoother = "none")
+# crPlot3d(model = p_fit, terms =  ~ ., var1 = "linear_probability" ,
+#  var2 = "sac", data = results,
+#          main = "3D Scatterplot with Regression Plane",
+#          smoother = "none")
 
 
 
-  par3d(userMatrix = rotationMatrix(0, 1, 0, 0))
-  par3d(userMatrix = rotationMatrix(pi/2, 0, 1, 0))
-  par3d(userMatrix = rotationMatrix(pi, 0, 1, 0))
-  par3d(zoom = .7)
-rgl.snapshot('3dplot.png', fmt = 'png')
-rgl::title3d("Your Title", cex = 5)
-rgl::par3d("title", adj = 0.1)
+#   par3d(userMatrix = rotationMatrix(0, 1, 0, 0))
+#   par3d(userMatrix = rotationMatrix(pi/2, 0, 1, 0))
+#   par3d(userMatrix = rotationMatrix(pi, 0, 1, 0))
+#   par3d(zoom = .7)
+# rgl.snapshot('3dplot.png', fmt = 'png')
+# rgl::title3d("Your Title", cex = 5)
+# rgl::par3d("title", adj = 0.1)
 
 # Print the regression formula
 print_regression <- function(linear_model) {
@@ -497,24 +420,24 @@ create_terms_dataframe <- function(linear_model, data) {
   return(terms_df)
 }
 
-save_3d_fig <- function(plot_3d, filename) {
-  # Display the 3D plot
-  plot_3d
+# save_3d_fig <- function(plot_3d, filename) {
+#   # Display the 3D plot
+#   plot_3d
 
-  x_filename <- paste(filename, "_xview.png", sep = "")
-  y_filename <- paste(filename, "_yview.png", sep = "")
+#   x_filename <- paste(filename, "_xview.png", sep = "")
+#   y_filename <- paste(filename, "_yview.png", sep = "")
 
-  # Rotate the plot using par3d
-  par3d(zoom = .7)
-  par3d(userMatrix = rotationMatrix(pi/2, 0, 1, 0))
+#   # Rotate the plot using par3d
+#   par3d(zoom = .7)
+#   par3d(userMatrix = rotationMatrix(pi/2, 0, 1, 0))
 
-  rgl.snapshot(x_filename, fmt = 'png')
+#   rgl.snapshot(x_filename, fmt = 'png')
 
   
-  par3d(userMatrix = rotationMatrix(pi, 0, 1, 0))
-  rgl.snapshot(y_filename, fmt = 'png')
+#   par3d(userMatrix = rotationMatrix(pi, 0, 1, 0))
+#   rgl.snapshot(y_filename, fmt = 'png')
 
-}
+# }
 
 # Show each term's fit
 plot_terms <- function(linear_model, data) {
@@ -533,18 +456,18 @@ plot_terms <- function(linear_model, data) {
     crPlot(new_linear_model, term, main = paste("crplot for", term), smooth =FALSE)
   }
   
-    dependent_variable <- as.character(formula(linear_model)[[2]])
-    filename <- paste("3d_images/", dependent_variable, sep ="")
+    # dependent_variable <- as.character(formula(linear_model)[[2]])
+    # filename <- paste("3d_images/", dependent_variable, sep ="")
   # Create 3dcrplots for interaction terms
-  for (term in interaction_terms) {
-    var_names <- strsplit(term, ":")[[1]]
-    plot_3d <- crPlot3d(model = linear_model, var1 = var_names[1],
-             var2 = var_names[2], data = data,
-         main = "3D CR Plot with Regression Plane",
-         smoother = "none")
+#   for (term in interaction_terms) {
+#     var_names <- strsplit(term, ":")[[1]]
+#     plot_3d <- crPlot3d(model = linear_model, var1 = var_names[1],
+#              var2 = var_names[2], data = data,
+#          main = "3D CR Plot with Regression Plane",
+#          smoother = "none")
 
-    save_3d_fig(plot_3d, filename)
-  }
+#     save_3d_fig(plot_3d, filename)
+#   }
 }
 
 # Plot the whole model's fit
