@@ -17,9 +17,9 @@ def main():
     attack_method = "TVLA"
     aes_mode = "CTR"
     if attack_method.upper() == "TVLA":
-        filename=f"./results/avg_leaks_{attack_method.lower()}_{device.lower()}_{aes_mode}.txt"
+        filename=f"./results/avg_leaks_{device.lower()}_{aes_mode}.txt"
     else:
-        filename=f"./results/n_traces_{attack_method.lower()}_{device.lower()}_{aes_mode}.txt"
+        filename=f"./results/n_traces_{attack_method.lower()}_{device.lower()}.txt"
 
 
     for sbox_name in sboxes_dict.keys():
