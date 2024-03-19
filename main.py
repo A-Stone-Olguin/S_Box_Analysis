@@ -1,5 +1,5 @@
 import pickle
-from chipwhisperer_minimal.metrics import num_traces, tvla
+from chipwhisperer_minimal.metrics import num_traces, tvla, cpa_metrics, dpa_metrics, tvla_metrics
 
 def main():
     try: 
@@ -15,21 +15,25 @@ def main():
     sboxes_dict = sboxes_df.T.to_dict()
     device = "CWNANO"
     attack_method = "TVLA"
-    aes_mode = "CBC"
+    aes_mode = "CTR"
     if attack_method.upper() == "TVLA":
         filename=f"./results/avg_leaks_{attack_method.lower()}_{device.lower()}_{aes_mode}.txt"
     else:
         filename=f"./results/n_traces_{attack_method.lower()}_{device.lower()}_{aes_mode}.txt"
 
+
     for sbox_name in sboxes_dict.keys():
         sbox = sboxes_dict[sbox_name]["box"]
         if attack_method.upper() == "TVLA":
-            avg_percent_leaks = tvla(sbox_name, device, aes_mode)
+            avg_percent_leaks = tvla(sbox_name, device, tvla_metrics, aes_mode)
             with open(filename, "a") as f:
                 print(sbox_name, avg_percent_leaks, file=f)
-
+        
         elif attack_method.upper() == "CPA" or attack_method.upper() == "DPA": 
-            N_threshold = num_traces(sbox_name, sbox, device, attack_method, aes_mode)
+            if attack_method.upper() == "CPA":
+                N_threshold = num_traces(sbox_name, sbox, device, cpa_metrics)
+            else:
+                N_threshold = num_traces(sbox_name, sbox, device, dpa_metrics)
             with open(filename, "a") as f:
                 print(sbox_name, N_threshold, file=f)
         else:

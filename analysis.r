@@ -17,7 +17,6 @@ library(reshape2)
 library(car)
 library(effects)
 library(estimability)
-library(rgl)
 
 
 # Open plot in separate window
