@@ -28,21 +28,20 @@ hgd()
 # Gathering S-box results and attaching for ease of use
 results <- read.csv("./results/sboxes_results.csv")
 dependent_vars <- colnames(results)[11:ncol(results)]
+dependent_vars <- setdiff(dependent_vars, "cwnano_CTR_avg_leaks")
+dependent_vars <- setdiff(dependent_vars, "cwlitearm_CTR_avg_leaks")
 attach(results)
 
 # Note that linear_probability and nonlinearity are directly related, so linear prob is removed
-fit_sm1 <- lm(X30_cwlitearm_tvla_CBC_1000 ~ nonlinearity + linearity)
+fit_sm1 <- lm(cwnano_ECB_avg_leaks ~ nonlinearity + linearity)
 summary(fit_sm1)
-# Note that nonlinearity and linearity are directly related so linearity is removed
-fit_sm2 <- lm(X30_cwlitearm_tvla_CBC_1000 ~ linear_branch + I(linear_branch^2) )
-summary(fit_sm2)
 
 
 plot_densities(results, dependent_vars)
 
 ## Plot DPA dists
 # NANO
-plot1 <- ggplot(data = results, aes(x = X10_cwnano_dpa_ECB, color = "CW-Nano")) +
+plot1 <- ggplot(data = results, aes(x = cwnano_DPA_n_traces, color = "CW-Nano")) +
          geom_density() +
          labs(x = "", y = "Density") +
         theme(plot.title = element_text(hjust = 0.5)) +
@@ -53,7 +52,7 @@ plot1 <- ggplot(data = results, aes(x = X10_cwnano_dpa_ECB, color = "CW-Nano")) 
 
 
 # LITE
-plot2 <- ggplot(data = results, aes(x = X10_cwlitearm_dpa_ECB, color = "CW-Lite")) +
+plot2 <- ggplot(data = results, aes(x = cwlitearm_DPA_n_traces, color = "CW-Lite")) +
          geom_density() +
          labs(x = "Minimum Number of Traces to break AES >= 90% of the time",
             y = "Density") +
@@ -69,8 +68,7 @@ plot1 + plot2  + plot_layout(nrow = 2)
 
 ## CPA Number traces distribution
 # NANO
-# TODO: Need to generate data for 30 runs
-plot1 <- ggplot(data = results, aes(x = X10_cwnano_cpa_ECB, color = "CW-Nano")) +
+plot1 <- ggplot(data = results, aes(x = cwnano_CPA_n_traces, color = "CW-Nano")) +
          geom_density() +
          labs(x = "", y = "Density") +
         theme(plot.title = element_text(hjust = 0.5)) +
@@ -81,7 +79,7 @@ plot1 <- ggplot(data = results, aes(x = X10_cwnano_cpa_ECB, color = "CW-Nano")) 
 
 
 # LITE
-plot2 <- ggplot(data = results, aes(x = X30_cwlitearm_cpa_ECB, color = "CW-Lite")) +
+plot2 <- ggplot(data = results, aes(x = cwlitearm_CPA_n_traces, color = "CW-Lite")) +
          geom_density() +
          labs(x = "Minimum Number of Traces to break AES >= 90% of the time",
             y = "Density") +
@@ -95,6 +93,43 @@ plot2 <- ggplot(data = results, aes(x = X30_cwlitearm_cpa_ECB, color = "CW-Lite"
 # Put in SubPlots
 plot1 + plot2  + plot_layout(nrow = 2)
 
+# Plot all tvla plots (not ctr)
+plot1 <- ggplot(data = results, aes(x = cwnano_ECB_avg_leaks, color = "CW-Nano")) +
+         geom_density() +
+         labs(x = "", y = "ECB Mode Density") +
+        theme(legend.position = "top") + 
+        scale_color_manual(values = c("CW-Nano" = "blue", "CW-Lite" = "red"),
+                                    name = "ChipWhisperer Device") +
+        guides(color = guide_legend(override.aes = list(fill = c("blue"))))
+
+plot2 <- ggplot(data = results, aes(x = cwlitearm_ECB_avg_leaks, color = "CW-Lite")) +
+         geom_density() +
+         labs(x = "", y = "") +
+        theme( legend.position = "top") +
+        scale_color_manual(values = c("CW-Nano" = "blue", "CW-Lite" = "red"),
+                                    name = "ChipWhisperer Device") +
+        guides(color = guide_legend(override.aes = list(fill = c("red"))))
+
+plot3 <- ggplot(data = results, aes(x = cwnano_CBC_avg_leaks)) +
+         geom_density(color = "blue") +
+         labs(x = "", y = "CBC Mode Density")
+
+plot4 <- ggplot(data = results, aes(x = cwlitearm_CBC_avg_leaks)) +
+         geom_density(color = "red") +
+         labs(x = "", y = "")
+
+plot5 <- ggplot(data = results, aes(x = cwnano_CTR_avg_leaks)) +
+         geom_density(color = "blue") +
+         labs(x = "Average Leakage Ratio", y = "CTC Mode Density")
+
+plot6 <- ggplot(data = results, aes(x = cwlitearm_CTR_avg_leaks)) +
+         geom_density(color = "red") +
+         labs(x = "Average Leakage Ratio", y = "")
+
+plot1 + plot2  + plot3 + plot4 + plot5 + plot6 +
+  plot_layout(ncol = 2) +
+  plot_annotation(title = "Density Plots for \"Detected Leakage\" Metric") &
+  theme(plot.title = element_text(hjust = 0.5))
 
 pos_nl <- results[results$nonlinearity > 0, ]
 
@@ -113,16 +148,25 @@ formula <- "(nonlinearity +
             linear_branch:bic -
             linear_probability:diff_branch - 
             linear_probability:linear_branch - 
-            linear_branch:boomerang_uniformity"
+            linear_branch:boomerang_uniformity -
+            differential_probability:linear_branch - 
+            nonlinearity:linear_branch"
 # Count how many times each property was significant
-count_df <- count_terms(dependent_vars2, formula)
+count_df <- count_terms(dependent_vars, formula)
 # Plot a barplot of each significant count
 plot_count_df(count_df)
 # Summary of each linear model
 create_models(dependent_vars, formula)
 
 
+nano_dpa_df <- results[results$cwnano_DPA_n_traces > 0, ]
+dependent_str <- "cwnano_DPA_n_traces ~"
+lm <- lm(as.formula(paste(dependent_str, formula)), data = nano_dpa_df)
+reg_lm <- regression_step(lm, dependent_str, nano_dpa_df)
+print_regression(reg_lm)
 
+plot_model(reg_lm, nano_dpa_df)
+plot_terms(reg_lm, nano_dpa_df)
 
 ## Examples for showing Regression formulae and interaction plots
 install.packages("modeldata")

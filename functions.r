@@ -1,8 +1,8 @@
 # Function that finds the best linear model stepwise considering the p-value
-regression_step <- function(linear_model, dependent_var) {
+regression_step <- function(linear_model, dependent_var, pos_df) {
     summ_fit <- summary(linear_model)
     terms <- attr(linear_model$terms, "term.labels")
-
+    pvals <- coef(summ_fit)[-1, "Pr(>|t|)"]
     # Clean out the NAs
     non_na <- !is.na(pvals)
     terms <- terms[non_na]
@@ -20,8 +20,7 @@ regression_step <- function(linear_model, dependent_var) {
                      
     new_formula <- as.formula(formula_string)
     new_lm <- update(linear_model, new_formula)
-
-    return(regression_step(new_lm, dependent_var, mode))
+    return(regression_step(new_lm, dependent_var, pos_df))
 }
 
 # Given a list of dependent vars for a dataframe, plot all density functions
@@ -51,8 +50,9 @@ count_terms <- function(dependent_vars, base_string) {
     dep_var_str <- paste(dependent_var, "~")
     formula_string <- paste(dep_var_str, base_string)
     form <- as.formula(formula_string)
-    lm <- lm(form, data=results)
-    linear_model <- regression_step(lm, dep_var_str)
+    pos_df <- results[results[[dependent_var]] > 0, ]
+    lm <- lm(form, data=pos_df)
+    linear_model <- regression_step(lm, dep_var_str, pos_df)
     
     # Currently recomputes a linear model each time
 
@@ -121,7 +121,7 @@ create_models <- function(dependent_vars, base_string) {
         formula_string <- paste(dep_var_str, base_string)
         form <- as.formula(formula_string)
         lm <- lm(form, data=results)
-        fit_result <- regression_step(lm, dep_var_str)
+        fit_result <- regression_step(lm, dep_var_str, results)
         print(fit_result)
         print(summary(fit_result))
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
@@ -217,7 +217,11 @@ plot_terms <- function(linear_model, data) {
   
   # Create crplots for linear terms
   linear_form <- as.formula(paste("~", paste(linear_terms, collapse = " + ")))
-  crPlots(new_linear_model, terms = linear_form, smooth = FALSE)
+#   crPlots(new_linear_model, terms = linear_form, smooth = FALSE)
+
+  for (term in linear_terms) {
+    crPlot(new_linear_model, term, main = paste("C+R Plot for", term), smooth = FALSE)
+  }
   
   dependent_variable <- as.character(formula(linear_model)[[2]])
   filename <- paste("3d_images/", dependent_variable, sep ="")
