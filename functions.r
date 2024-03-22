@@ -123,7 +123,8 @@ create_models <- function(dependent_vars, base_string) {
         lm <- lm(form, data=results)
         fit_result <- regression_step(lm, dep_var_str, results)
         print(fit_result)
-        print(summary(fit_result))
+        print_regression(fit_result)
+        # print(summary(fit_result))
         print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     }
 }
@@ -191,9 +192,10 @@ save_3d_fig <- function(plot_3d, filename) {
   y_filename <- paste(filename, "_yview.png", sep = "")
 
   # Rotate the plot using par3d
-  par3d(zoom = .8)
+  par3d(zoom = 1)
   par3d(windowRect = c(20,30,600,600))
   par3d(userMatrix = rotationMatrix(pi/2, 0, 1, 0))
+  movie3d( spin3d(rpm=3), duration=20,dir="./3d_movie", clean=FALSE )
 
   rgl.snapshot(x_filename, fmt = 'png')
 
@@ -219,11 +221,11 @@ plot_terms <- function(linear_model, data) {
   linear_form <- as.formula(paste("~", paste(linear_terms, collapse = " + ")))
 #   crPlots(new_linear_model, terms = linear_form, smooth = FALSE)
 
+  dependent_variable <- as.character(formula(linear_model)[[2]])
   for (term in linear_terms) {
-    crPlot(new_linear_model, term, main = paste("C+R Plot for", term), smooth = FALSE)
+    crPlot(new_linear_model, term, main = paste("C+R Plot for", dependent_variable), smooth = FALSE)
   }
   
-  dependent_variable <- as.character(formula(linear_model)[[2]])
   filename <- paste("3d_images/", dependent_variable, sep ="")
   # Create 3dcrplots for interaction terms
   for (term in interaction_terms) {
@@ -231,8 +233,7 @@ plot_terms <- function(linear_model, data) {
     plot_3d <- crPlot3d(model = linear_model, var1 = var_names[1],
              var2 = var_names[2], data = data,
          main = "3D CR Plot with Regression Plane",
-         smoother = "none",
-         zlab = dependent_variable)
+         smoother = "none")
 
     save_3d_fig(plot_3d, filename)
   }

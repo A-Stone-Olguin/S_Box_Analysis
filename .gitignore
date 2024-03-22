@@ -13,3 +13,4 @@ __pycache__
 *.npy
 *.o.s 
 *.cwp
+3d_movie/
