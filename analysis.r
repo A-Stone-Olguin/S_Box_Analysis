@@ -132,6 +132,38 @@ plot1 + plot2  + plot3 + plot4 + plot5 + plot6 +
   plot_annotation(title = "Density Plots for \"Detected Leakage\" Metric") &
   theme(plot.title = element_text(hjust = 0.5))
 
+## Plot Number of Traces Dists
+pos_dpa_nano <- results[results$cwnano_DPA_n_traces > 0, ]
+pos_dpa_lite <- results[results$cwlitearm_DPA_n_traces > 0, ]
+plot1 <- ggplot(data = pos_dpa_nano, aes(x = cwnano_DPA_n_traces, color = "CW-Nano")) +
+         geom_density() +
+         labs(x = "", y = "Density") +
+        theme(legend.position = "top") + 
+        scale_color_manual(values = c("CW-Nano" = "blue", "CW-Lite" = "red"),
+                                    name = "ChipWhisperer Device") +
+        guides(color = guide_legend(override.aes = list(fill = c("blue"))))
+
+plot2 <- ggplot(data = pos_dpa_lite, aes(x = cwlitearm_DPA_n_traces, color = "CW-Lite")) +
+         geom_density() +
+         labs(x = "", y = "") +
+        theme( legend.position = "top") +
+        scale_color_manual(values = c("CW-Nano" = "blue", "CW-Lite" = "red"),
+                                    name = "ChipWhisperer Device") +
+        guides(color = guide_legend(override.aes = list(fill = c("red"))))
+
+plot3 <- ggplot(data = results, aes(x = cwnano_CPA_n_traces)) +
+         geom_density(color = "blue") +
+         labs(x = "Minimum Number of Traces", y = "Density")
+
+plot4 <- ggplot(data = results, aes(x = cwlitearm_CPA_n_traces)) +
+         geom_density(color = "red") +
+         labs(x = "Minimum Number of Traces", y = "")
+
+plot1 + plot2 + plot3 + plot4 +
+  plot_layout(ncol = 2) +
+  plot_annotation(title = "Density Plots for \"Number of Traces\" Metric") &
+  theme(plot.title = element_text(hjust = 0.5))
+
 pos_nl <- results[results$nonlinearity > 0, ]
 
 # Formula string (has all interactions except those that are singularities)
@@ -205,7 +237,20 @@ plot3 <- ggplot(data = plot_data, aes(x = fitted_values, y = actual_values)) +
 dependent_str <- "cwlitearm_CPA_n_traces ~"
 lm <- lm(as.formula(paste(dependent_str, formula)), data = results)
 reg_lm <- regression_step(lm, dependent_str, results)
-plot_terms(reg_lm, results)
+# Get the terms from the model formula
+terms <- attr(terms(reg_lm), "term.labels")
+# Identify linear terms and interaction terms
+linear_terms <- terms[!grepl(":", terms)]
+new_df <- create_terms_dataframe(reg_lm, results)
+new_linear_model <- lm(cwlitearm_CPA_n_traces ~ ., data= new_df)
+# Create crplots for linear terms
+linear_form <- as.formula(paste("~", paste(linear_terms, collapse = " + ")))
+par(mfrow= c(2,2))
+crPlot(new_linear_model, diff_branch, smooth=FALSE,# main="C+R Plot for \"Number of Traces\" metric using CPA on CW-Lite",  
+                  xlab = "Differential Branch Number", ylab="Component and Residual value")
+crPlot(new_linear_model, sac, smooth=FALSE,# main="C+R Plot for \"Number of Traces\" metric using CPA on CW-Lite",  
+                  xlab = "SAC", ylab="")
+# plot_terms(reg_lm, results)
 dependent_variable <- as.character(formula(lm)[[2]])
 plot_data <- data.frame(fitted_values = fitted(lm), actual_values = results[[dependent_variable]])
 plot4 <- ggplot(data = plot_data, aes(x = fitted_values, y = actual_values)) +
@@ -218,6 +263,20 @@ dependent_str <- "cwnano_ECB_avg_leaks ~"
 lm <- lm(as.formula(paste(dependent_str, formula)), data = results)
 reg_lm <- regression_step(lm, dependent_str, results)
 dependent_variable <- as.character(formula(lm)[[2]])
+terms <- attr(terms(reg_lm), "term.labels")
+interaction_terms <- terms[grepl(":", terms)]
+# Create 3dcrplots for interaction terms
+crPlot3d(model = reg_lm, var1 = "nonlinearity",
+        var2 = "differential_probability", data = results,
+        xlab = "Nonlinearity",
+        ylab = "C+R Value",
+        zlab = "Differential Probability",
+        smoother = "none")
+par3d(zoom = 1)
+par3d(windowRect = c(20,30,800,800))
+par3d(userMatrix = rotationMatrix(pi/2, 0, 1, 0))
+movie3d( spin3d(axis=c(0,1,0), rpm=3), duration=20,dir="./3d_movie", clean=FALSE )
+
 plot_data <- data.frame(fitted_values = fitted(lm), actual_values = results[[dependent_variable]])
 plot5 <- ggplot(data = plot_data, aes(x = fitted_values, y = actual_values)) +
          geom_point(color = "blue") +       
@@ -227,7 +286,22 @@ plot5 <- ggplot(data = plot_data, aes(x = fitted_values, y = actual_values)) +
 dependent_str <- "cwlitearm_ECB_avg_leaks ~"
 lm <- lm(as.formula(paste(dependent_str, formula)), data = results)
 reg_lm <- regression_step(lm, dependent_str, results)
-plot_terms(reg_lm, results)
+# Get the terms from the model formula
+terms <- attr(terms(reg_lm), "term.labels")
+# Identify linear terms and interaction terms
+linear_terms <- terms[!grepl(":", terms)]
+new_df <- create_terms_dataframe(reg_lm, results)
+new_linear_model <- lm(cwlitearm_ECB_avg_leaks ~ ., data= new_df)
+# Create crplots for linear terms
+linear_form <- as.formula(paste("~", paste(linear_terms, collapse = " + ")))
+crPlot(new_linear_model, nonlinearity, smooth=FALSE,# main="C+R Plot for \"Number of Traces\" metric using CPA on CW-Lite",  
+                  xlab = "Nonlinearity", ylab="Component and Residual value")
+crPlot(new_linear_model, bic, smooth=FALSE,# main="C+R Plot for \"Number of Traces\" metric using CPA on CW-Lite",  
+                  xlab = "BIC", ylab="")
+# title("Composite and Residual Plots for two terms from two models", outer = TRUE)
+par(mfrow = c(1,1))
+
+# plot_terms(reg_lm, results)
 dependent_variable <- as.character(formula(lm)[[2]])
 plot_data <- data.frame(fitted_values = fitted(lm), actual_values = results[[dependent_variable]])
 plot6 <- ggplot(data = plot_data, aes(x = fitted_values, y = actual_values)) +

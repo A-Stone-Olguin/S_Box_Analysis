@@ -14,3 +14,6 @@ __pycache__
 *.o.s 
 *.cwp
 3d_movie/
+3d_movie2/
+sboxes_results.csv
+3d_images/
