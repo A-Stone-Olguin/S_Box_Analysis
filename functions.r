@@ -1,3 +1,23 @@
+# Determine the ranking of the p-values
+calculate_pvalue_rank <- function(linear_model) {
+  p_values <- summary(linear_model)$coefficients[, "Pr(>|t|)"]
+  ranked_indices <- order(p_values)
+  return(ranked_indices)
+}
+
+# Determine the ranking of the confidence intervals
+calculate_ci_width_rank <- function(linear_model) {
+  ci <- confint(linear_model)
+  widths <- ci[, 2] - ci[, 1]
+# Rescale the widths to [0, 1]
+  min_width <- min(widths)
+  max_width <- max(widths)
+  scaled_widths <- (widths - min_width) / (max_width - min_width)
+
+  ranked_indices <- order(scaled_widths)
+  return(ranked_indices)
+}
+
 # Function that finds the best linear model stepwise considering the p-value
 regression_step <- function(linear_model, dependent_var, pos_df) {
     summ_fit <- summary(linear_model)
@@ -10,7 +30,20 @@ regression_step <- function(linear_model, dependent_var, pos_df) {
 
     max_p_value <- which.max(pvals)
     max_p <- max(pvals)
+
+    # ci <- confint(linear_model)
+    # num_zero_count_ci <- sum(ci[, 1] <= 0 & ci[, 2] >= 0)
+    # model_rankings <- data.frame(Term = character(), PValueRank = integer(), CIWidthRank = integer())
+    pvalue_rank <- calculate_pvalue_rank(linear_model)
+  
+    # Calculate CI width ranking
+    ci_width_rank <- calculate_ci_width_rank(linear_model)
+    # Combine rankings into a dataframe
+    model_ranking <- data.frame(PValueRank = rank(pvalue_rank),
+                                CIWidthRank = rank(ci_width_rank))
+
     if (max_p < 0.05) {
+        View(model_ranking)
         return(linear_model)
     }
 
