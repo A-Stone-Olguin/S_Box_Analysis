@@ -1,21 +1,19 @@
-# Determine the ranking of the p-values
-calculate_pvalue_rank <- function(linear_model) {
-  p_values <- summary(linear_model)$coefficients[, "Pr(>|t|)"]
-  ranked_indices <- order(p_values)
-  return(ranked_indices)
-}
+calculate_cis <- function(pvals, linear_model) {
+  # Calculate the test statistic for each p-value
+#   z <- -0.862 + sqrt(0.743 - 2.404 * log(pvals))
+  df <- linear_model$df.residual
+  test_stat <- qt(1- pvals/2, df)
+  
+  # Calculate the standard error
+  SE <- abs(1 / test_stat)
+  
+  # Calculate the 95% confidence interval
+  lower_bound <- 1 - 1.96 * SE
+  upper_bound <- 1 + 1.96 * SE
+  
+  # Return the confidence interval
+  return(data.frame(p_value = pvals, lower_bound = lower_bound, upper_bound = upper_bound, diff=upper_bound-lower_bound))
 
-# Determine the ranking of the confidence intervals
-calculate_ci_width_rank <- function(linear_model) {
-  ci <- confint(linear_model)
-  widths <- ci[, 2] - ci[, 1]
-# Rescale the widths to [0, 1]
-  min_width <- min(widths)
-  max_width <- max(widths)
-  scaled_widths <- (widths - min_width) / (max_width - min_width)
-
-  ranked_indices <- order(scaled_widths)
-  return(ranked_indices)
 }
 
 # Function that finds the best linear model stepwise considering the p-value
@@ -28,26 +26,17 @@ regression_step <- function(linear_model, dependent_var, pos_df) {
     terms <- terms[non_na]
     pvals <- pvals[non_na]
 
-    max_p_value <- which.max(pvals)
-    max_p <- max(pvals)
+    # Calculate 95% Confidence Interval
+    ci_vals <- calculate_cis(pvals, linear_model)
+    largest_ci_difference <- which.max(ci_vals$diff)
 
-    # ci <- confint(linear_model)
-    # num_zero_count_ci <- sum(ci[, 1] <= 0 & ci[, 2] >= 0)
-    # model_rankings <- data.frame(Term = character(), PValueRank = integer(), CIWidthRank = integer())
-    pvalue_rank <- calculate_pvalue_rank(linear_model)
-  
-    # Calculate CI width ranking
-    ci_width_rank <- calculate_ci_width_rank(linear_model)
-    # Combine rankings into a dataframe
-    model_ranking <- data.frame(PValueRank = rank(pvalue_rank),
-                                CIWidthRank = rank(ci_width_rank))
-
-    if (max_p < 0.05) {
-        View(model_ranking)
+    # Make sure bounds don't contain zero
+    if (!(ci_vals$lower_bound[largest_ci_difference] <=0 && ci_vals$upper_bound[largest_ci_difference] >=0 )) {
+        View(ci_vals)
         return(linear_model)
     }
 
-    remove_term <- names(pvals)[max_p_value]
+    remove_term <- rownames(ci_vals)[largest_ci_difference]
     ind_terms <- paste(setdiff(terms, remove_term), collapse= " + ")
     formula_string <- paste(dependent_var, ind_terms)
                      
@@ -153,8 +142,9 @@ create_models <- function(dependent_vars, base_string) {
         dep_var_str <- paste(dependent_var, "~")
         formula_string <- paste(dep_var_str, base_string)
         form <- as.formula(formula_string)
-        lm <- lm(form, data=results)
-        fit_result <- regression_step(lm, dep_var_str, results)
+        pos_df <- results[results[[dependent_var]] > 0, ]
+        lm <- lm(form, data=pos_df)
+        fit_result <- regression_step(lm, dep_var_str, pos_df)
         print(fit_result)
         print_regression(fit_result)
         # print(summary(fit_result))
