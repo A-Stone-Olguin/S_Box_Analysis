@@ -32,11 +32,38 @@ regression_step <- function(linear_model, dependent_var, pos_df) {
 
     # Make sure bounds don't contain zero
     if (!(ci_vals$lower_bound[largest_ci_difference] <=0 && ci_vals$upper_bound[largest_ci_difference] >=0 )) {
-        View(ci_vals)
         return(linear_model)
     }
 
     remove_term <- rownames(ci_vals)[largest_ci_difference]
+    ind_terms <- paste(setdiff(terms, remove_term), collapse= " + ")
+    formula_string <- paste(dependent_var, ind_terms)
+                     
+    new_formula <- as.formula(formula_string)
+    new_lm <- update(linear_model, new_formula)
+    return(regression_step(new_lm, dependent_var, pos_df))
+}
+
+# Function that finds the best linear model stepwise considering the p-value
+p_value_regression_step <- function(linear_model, dependent_var, pos_df) {
+    summ_fit <- summary(linear_model)
+    terms <- attr(linear_model$terms, "term.labels")
+    pvals <- coef(summ_fit)[-1, "Pr(>|t|)"]
+    # Clean out the NAs
+    non_na <- !is.na(pvals)
+    terms <- terms[non_na]
+    pvals <- pvals[non_na]
+
+    max_p_value <- which.max(pvals)
+    max_p <- max(pvals)
+
+    # Make sure bounds don't contain zero
+    if (max_p < 0.05) {
+        View(ci_vals)
+        return(linear_model)
+    }
+
+    remove_term <- rownames(pvals)[max_p_value]
     ind_terms <- paste(setdiff(terms, remove_term), collapse= " + ")
     formula_string <- paste(dependent_var, ind_terms)
                      
